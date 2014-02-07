@@ -13,9 +13,6 @@ from keystoneclient.v2_0 import client as ksc
 from novaclient import client as nc
 from novaclient import exceptions as nexc
 
-today = datetime.datetime.utcnow()
-today = today.replace (hour=0, minute=0, second=0, microsecond=0)
-
 VERSION = 2
 
 # As the credential information is sensiteive information, I assume it is set in environment variable 
@@ -91,7 +88,7 @@ def main(count=1, flavor='Large-B', image='WS08R2_ApplicationServer', zone='az1'
 
         for i in range(count):
     
-            nme = prefix + str(int(random.random()*1000))
+            nme = prefix + str(int(random.random()*10000))
             
             vol1 = cinder.volumes.create(sizegb, imageRef=img.id)
             status = vol1.status
@@ -121,6 +118,9 @@ def main(count=1, flavor='Large-B', image='WS08R2_ApplicationServer', zone='az1'
                 # Retrieve instance again to update status field
                 instance = nova.servers.get (instance.id)
                 status = instance.status
+
+            rightnow = datetime.datetime.now()
+            print nme, ": nova done at ", rightnow
 
     except nexc.ClientException as exc:
         print vars(exc)
