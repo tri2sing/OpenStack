@@ -51,23 +51,40 @@ def get_nova_info():
     d['no_cache'] = True
     return d
 
+# Glance does not easy allow creating a client like nova and cinder.
+def get_glance_client():
+        kstone = ksc.Client (**get_kston_info())
+        glanceendpoint = kstone.service_catalog.url_for(service_type='image', endpoint_type='internalURL')
+        glance = gct.Client('1', glanceendpoint, token=kstone.auth_token, cacert=kstone.verify_cert)
+        return glance
 
-def main(count=1, flavor='Large-B', image='WS08R2_ApplicationServer', zone='nova', host=os.uname()[1], network='External3', prefix='sameer', userdatafile=''):
+
+def main(count=1, flavor='Large-B', image='WS08R2_ApplicationServer', zone='az1', host=os.uname()[1], network='External3', prefix='sameer', userdatafile=''):
     
     random.seed()
     
     try:
         nova = nc.Client (VERSION, **get_nova_info())
         cinder = cct.Client (VERSION, **get_cinder_info())
-    
-        # It is required that any of the search terms used in find functions
-        # match  objects that already exist in the OpenStack environment.
-        img = nova.images.find (name = image)
-        size = int(getattr(img, 'OS-EXT-IMG-SIZE:size'))
-        sizegb = size/(1024*1024*1000)
+        glance = get_glance_client()
+
+        # There are some requirements for the find function to work.
+        # 1) The name/label you use in the search match exactly one object.
+        # 2) A unique object exist that matches the search criterion.
         fvr = nova.flavors.find (name = flavor)
         net = nova.networks.find (label=network)
     
+        # Initially the image search in nova worked as the requirements abive were satisfied.
+        # Then two images with the same name were created so I needed another criterion.
+        #img = nova.images.find (name=image)
+        #sizegb = int(getattr(img, 'OS-EXT-IMG-SIZE:size'))/(1024*1024*1000)
+
+        # Using two criteria required querying glance instead of nova.
+        # Glance returns an iterator rather than a list of objects.
+        # We ensure that our filter criteria return one and only one object.
+        images = list(glance.images.list (filters = {'name': image, 'disk_format': 'raw'}))
+        img = images[0]
+        sizegb = img.size/(1024*1024*1000)
     
         # I am creating one instance at a time instead of the using the max_count parameter.
         # Using max_count creates VMs appended with GUID in their names and makes them very long.
@@ -93,7 +110,7 @@ def main(count=1, flavor='Large-B', image='WS08R2_ApplicationServer', zone='nova
                 image=img, 
                 flavor=fvr, 
                 nics=[{'net-id': net.id}], 
-                availability_zone=zone+':'+computer, 
+                availability_zone=zone+':'+host, 
                 block_device_mapping={'vda': vol1.id},
                 userdata=userdata
                 )
@@ -114,7 +131,7 @@ if __name__ == '__main__':
     parser.add_argument ('-c', '--count', type=int, default=1, help='the number of instances to create') 
     parser.add_argument ('-f', '--flavor', default='Large-B', help='name of the flavor to use for the instance')
     parser.add_argument ('-i', '--image', default='WS08R2_ApplicationServer', help='name of the image to use for the instance')
-    parser.add_argument ('-az', '--zone', default='nova', help='availability zone to launch the instance on')
+    parser.add_argument ('-az', '--zone', default='az1', help='availability zone to launch the instance on')
     parser.add_argument ('-t', '--host', default=os.uname()[1], help='name of the host to launch the instance on')
     parser.add_argument ('-n', '--network', default='External3', help='name of the network to use for the instance')
     parser.add_argument ('-p', '--prefix', default='sameer', help='prefix to use for the name of the instance, the remainder will be a random number')
