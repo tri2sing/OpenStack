@@ -194,6 +194,11 @@ def get_instances_map (instances_list, flavors_map, images_map, tenants_map, use
             info['email'] =  users_map[instance.user_id]['email']
         except KeyError:
             info['email'] = None
+        try:
+            info.update({key: users_map[instance.user_id][key] for key in users_map[instance.user_id] if key.startswith('Level')})
+        except KeyError:
+            info.update({'Level' + str(num):'' for num in range(3, 11)})
+
         info['instance_id'] =  getattr(instance, 'OS-EXT-SRV-ATTR:instance_name')
         info['vm_state'] =  getattr(instance, 'OS-EXT-STS:vm_state')
         info['power_state'] =  getattr(instance, 'OS-EXT-STS:power_state')
@@ -241,7 +246,7 @@ if __name__ == '__main__':
     users_id_to_name, users_name_to_id, idsids = get_users_map_and_reverse() 
     org_info = get_org_info(idsids)
     modify_user_map_with_org(users_id_to_name, users_name_to_id, org_info)
-    print_dict(users_id_to_name)
+    #print_dict(users_id_to_name)
     instances_list = get_instances_details()
 
     flavorids = {s.flavor['id'] for s in instances_list if s.flavor}
@@ -255,7 +260,7 @@ if __name__ == '__main__':
     #insert_data_mongo ('images', images_map)
 
     instances_map = get_instances_map(instances_list, flavors_map, images_map, tenants_map, users_id_to_name)
-    #print_dict(instances_map)
+    print_dict(instances_map)
     #insert_data_mongo ('instances', instances_map)
 
 
