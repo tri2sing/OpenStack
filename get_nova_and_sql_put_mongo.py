@@ -13,9 +13,7 @@ import sys
 today = datetime.datetime.utcnow()
 today = today.replace (hour=0, minute=0, second=0, microsecond=0)
 
-# The MongoDB should not be set to use a usename and password for access
 MONGO_URL = os.environ['MONGO_URL']
-#MONGO_URL = 'mongodb://mongodb-us-sw-in.icloud.intel.com'
 
 def get_cdis_info():
     d = {}
@@ -180,6 +178,7 @@ def get_instances_map (instances_list, flavors_map, images_map, tenants_map, use
     for instance in instances_list:
         info = {}
         info['timestamp'] = today
+        info['id'] = instance.id
         info['name'] = instance.name
         info['created'] = instance.created
         try:
@@ -223,8 +222,7 @@ def insert_data_mongo (collectionname, datadict):
     try:
         connection = pymongo.Connection (MONGO_URL, safe=True)
     except pymongo.errors.ConnectionFailure as e:
-        print 'Error: check  your MongoDB connectivty'
-        print 'Error:',  e
+        print str(today) + 'Error:',  e
         sys.exit()
     db = connection['inventory']
     collection = db[collectionname]
@@ -252,15 +250,15 @@ if __name__ == '__main__':
     flavorids = {s.flavor['id'] for s in instances_list if s.flavor}
     flavors_map = get_flavors_map(flavorids)
     #print_dict(flavors_map)
-    #insert_data_mongo ('flavors', flavors_map)
+    insert_data_mongo ('flavors', flavors_map)
 
     imageids = {s.image['id'] for s in instances_list if s.image}
     images_map = get_images_map(imageids)
     #print_dict(images_map)
-    #insert_data_mongo ('images', images_map)
+    insert_data_mongo ('images', images_map)
 
     instances_map = get_instances_map(instances_list, flavors_map, images_map, tenants_map, users_id_to_name)
-    print_dict(instances_map)
-    #insert_data_mongo ('instances', instances_map)
+    #print_dict(instances_map)
+    insert_data_mongo ('instances', instances_map)
 
 
