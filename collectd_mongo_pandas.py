@@ -1,20 +1,23 @@
 #!/usr/bin/env python
 
-from datetime import datetime as dt, timedelta
 from bson import json_util
+from datetime import datetime as dtm
+from datetime import timedelta as delta
+
+import csv
 import json
 import os
 import pandas as pd
 import pandas.tools as tl
 import pymongo
 import sys
-import csv
 
-today = dt.now()
-today = today.replace (hour=0, minute=0, second=0, microsecond=0)
-yesterday = today + timedelta (days=-1)
+end = dtm.now()
+endmidnight = end.replace (hour=0, minute=0, second=0, microsecond=0)
+
 # For testing purpose reduced the duration to a few hours
-#yesterday = today + timedelta (hours=-1)
+#start = end + delta (days=-1)
+start = end + delta (hours=-4)
 
 # The MongoDB should not be set to use a usename and password for access
 MONGO_URL = os.environ['MONGO_URL']
@@ -36,7 +39,7 @@ cpu = db2.cpu
 disk = db2.disk
 load = db2.load
 
-hypqry = {'timestamp': today}
+hypqry = {'timestamp': endmidnight}
 fields = {'_id': 0}
 
 try:
@@ -45,27 +48,31 @@ try:
 
     for h in hvsrs:
         info = {}
-        #cpuqry = {"time" : { "$gte" : yesterday, "$lte" : today }, "host": h['name'], "type_instance": "system"}
-        '''
-        cpuqry = {"time" : { "$gte" : yesterday, "$lte" : today }, "host": h['name']}
+        cpuqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name']}
         print cpuqry
+        print dtm.now()
         cpudocs = cpu.find (cpuqry, fields)
-        cpulist = list(cpudocs)
-        if cpulist:
-            df = pd.read_json(json.loads(cpulist))
+        print dtm.now()
+        if cpudocs.count() != 0:  # This statement is slow; trying to figure out a solution
+            cpulist = list(cpudocs)
+            #Need to use json_util.default to handle conversion of datetime into jason.  
+            df = pd.read_json(json.dumps(cpulist, default=json_util.default))
             print df.head()
+        else:
+            print "No data for " + h['name']
+        print dtm.now()
         '''
-        loadqry = {"time" : { "$gte" : yesterday, "$lte" : today }, "host": h['name']}
+        loadqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name']}
         #print loadqry
         loaddocs = load.find (loadqry, fields)
         loadlist = list(loaddocs)
         if loadlist:
-            #print json.dumps(loadlist[0], default=json_util.default)
+            #Need to use json_util.default to handle conversion of datetime into jason.  
             df = pd.read_json(json.dumps(loadlist, default=json_util.default))
             print df.head()
             print ''
+        '''
 
 except pymongo.errors.PyMongoError as e:
-    print str(today) + ': Error: unable to query'
-    print str(today) + ': Error:', e
+    print str(end) + ': Error:', e
 
