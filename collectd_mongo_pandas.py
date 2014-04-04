@@ -51,10 +51,11 @@ try:
 
     for h in hvsrs:
         info = {}
+        print 'Start Time = ' + str(dtm.now())
+        '''
         #cpuqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name']}
         cpuqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name'], 'type_instance': 'system'}
         print cpuqry
-        print 'Start Time = ' + dtm.now()
         cpudocs = cpu.find (cpuqry, fields)
         if cpudocs.count() != 0:  # This statement is slow; trying to figure out a solution
             cpulist = list(cpudocs)
@@ -63,7 +64,6 @@ try:
             print df.head()
         else:
             print "No data for " + h['name']
-        print 'End Time = ' + dtm.now()
         '''
         loadqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name']}
         #print loadqry
@@ -74,7 +74,7 @@ try:
             df = pd.read_json(json.dumps(loadlist, default=date_handler))
             print df.head()
             print ''
-        '''
+        print 'End Time = ' + str(dtm.now())
 
 except pymongo.errors.PyMongoError as e:
     print str(end) + ': Error:', e
