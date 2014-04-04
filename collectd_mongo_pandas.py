@@ -12,12 +12,15 @@ import pandas.tools as tl
 import pymongo
 import sys
 
+def date_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
 end = dtm.now()
 endmidnight = end.replace (hour=0, minute=0, second=0, microsecond=0)
 
 # For testing purpose reduced the duration to a few hours
-#start = end + delta (days=-1)
-start = end + delta (hours=-4)
+start = endmidnight + delta (days=-1)
+#start = endmidnight + delta (hours=-48)
 
 # The MongoDB should not be set to use a usename and password for access
 MONGO_URL = os.environ['MONGO_URL']
@@ -48,27 +51,27 @@ try:
 
     for h in hvsrs:
         info = {}
-        cpuqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name']}
+        #cpuqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name']}
+        cpuqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name'], 'type_instance': 'system'}
         print cpuqry
-        print dtm.now()
+        print 'Start Time = ' + dtm.now()
         cpudocs = cpu.find (cpuqry, fields)
-        print dtm.now()
         if cpudocs.count() != 0:  # This statement is slow; trying to figure out a solution
             cpulist = list(cpudocs)
-            #Need to use json_util.default to handle conversion of datetime into jason.  
-            df = pd.read_json(json.dumps(cpulist, default=json_util.default))
+            #df = pd.read_json(json.dumps(cpulist, default=json_util.default))
+            df = pd.read_json(json.dumps(cpulist, default=date_handler))
             print df.head()
         else:
             print "No data for " + h['name']
-        print dtm.now()
+        print 'End Time = ' + dtm.now()
         '''
         loadqry = {"time" : { "$gte" : start, "$lte" : end }, "host": h['name']}
         #print loadqry
         loaddocs = load.find (loadqry, fields)
         loadlist = list(loaddocs)
         if loadlist:
-            #Need to use json_util.default to handle conversion of datetime into jason.  
-            df = pd.read_json(json.dumps(loadlist, default=json_util.default))
+            #df = pd.read_json(json.dumps(loadlist, default=json_util.default))
+            df = pd.read_json(json.dumps(loadlist, default=date_handler))
             print df.head()
             print ''
         '''

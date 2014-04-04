@@ -21,7 +21,7 @@ endmidnight = end.replace (hour=0, minute=0, second=0, microsecond=0)
 
 # For testing purpose reduced the duration to a few hours
 #start = end + delta (days=-1)
-start = end + delta (hours=-24)
+start = end + delta (hours=-8)
 
 # The MongoDB should not be set to use a usename and password for access
 MONGO_URL = os.environ['MONGO_URL']
